@@ -1,0 +1,21 @@
+-- Get necessary services and modules
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local bufferWriter = require(game:GetService("ReplicatedStorage").Modules.ByteNet.process.bufferWriter) -- Path to bufferWriter
+local ByteNetReliable = ReplicatedStorage:WaitForChild("ByteNetReliable")
+
+-- Bloodfruit Item ID and its index in the inventory
+local bloodfruitID = 94
+local bloodfruitIndex = 8 -- Since it's the 8th item in your inventory
+
+-- Allocate space in the buffer
+bufferWriter.alloc(16) -- Allocate space in the buffer (16 bytes as an example)
+
+-- Write data to the buffer
+bufferWriter.u16(bloodfruitIndex)  -- Write the Bloodfruit index (16-bit unsigned integer)
+bufferWriter.u8(2) -- Hypothetical drop action code (adjust as needed based on the game mechanics)
+
+-- Export the buffer data to be sent to the server
+local bufferData = bufferWriter.export()
+
+-- Send the buffer to the server to drop the Bloodfruit
+ByteNetReliable:FireServer(bufferData)
