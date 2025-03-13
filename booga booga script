@@ -162,9 +162,9 @@ end
 
 Options.msatoggle:OnChanged(updmsa)
 
-local function swingtool(tspmogngicl)
+local function swingtool(entityid)
     if packets.SwingTool and packets.SwingTool.send then
-        packets.SwingTool.send(tspmogngicl)
+        packets.SwingTool.send(entityid)
     end
 end
 
