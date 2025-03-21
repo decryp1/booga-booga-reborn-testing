@@ -201,7 +201,7 @@ task.spawn(function()
         end
 
         local range = tonumber(Options.killaurarange.Value) or 20
-        local targetCount = tonumber(Options.katargetcountdropdown.Value) or 1
+        local targetcount = tonumber(Options.katargetcountdropdown.Value) or 1
         local cooldown = tonumber(Options.kaswingcooldownslider.Value) or 0.1
         local targets = {}
 
@@ -227,12 +227,12 @@ task.spawn(function()
                 return a.dist < b.dist
             end)
 
-            local selectedTargets = {}
-            for i = 1, math.min(targetCount, #targets) do
-                table.insert(selectedTargets, targets[i].eid)
+            local selectedtargets = {}
+            for i = 1, math.min(targetcount, #targets) do
+                table.insert(selectedtargets, targets[i].eid)
             end
 
-            swingtool(selectedTargets)
+            swingtool(selectedtargets)
         end
 
         task.wait(cooldown)
@@ -247,7 +247,7 @@ task.spawn(function()
             end
 
             local range = tonumber(Options.resourceaurarange.Value) or 20
-            local targetCount = tonumber(Options.resourcetargetdropdown.Value) or 1
+            local targetcount = tonumber(Options.resourcetargetdropdown.Value) or 1
             local cooldown = tonumber(Options.resourcecooldownslider.Value) or 0.1
             local targets = {}
 
@@ -270,12 +270,12 @@ task.spawn(function()
                     return a.dist < b.dist
                 end)
 
-                local selectedTargets = {}
-                for i = 1, math.min(targetCount, #targets) do
-                    table.insert(selectedTargets, targets[i].eid)
+                local selectedtargets = {}
+                for i = 1, math.min(targetcount, #targets) do
+                    table.insert(selectedtargets, targets[i].eid)
                 end
 
-                swingtool(selectedTargets)
+                swingtool(selectedtargets)
             end
 
             task.wait(cooldown)
@@ -290,7 +290,7 @@ task.spawn(function()
         end
 
         local range = tonumber(Options.critterrangeslider.Value) or 20
-        local targetCount = tonumber(Options.crittertargetdropdown.Value) or 1
+        local targetcount = tonumber(Options.crittertargetdropdown.Value) or 1
         local cooldown = tonumber(Options.crittercooldownslider.Value) or 0.1
         local targets = {}
 
@@ -313,19 +313,17 @@ task.spawn(function()
                 return a.dist < b.dist
             end)
 
-            local selectedTargets = {}
-            for i = 1, math.min(targetCount, #targets) do
-                table.insert(selectedTargets, targets[i].eid)
+            local selectedtargets = {}
+            for i = 1, math.min(targetcount, #targets) do
+                table.insert(selectedtargets, targets[i].eid)
             end
 
-            swingtool(selectedTargets)
+            swingtool(selectedtargets)
         end
 
         task.wait(cooldown)
     end
 end)
-
-
 
 task.spawn(function()
     while true do
@@ -387,7 +385,6 @@ runs.Heartbeat:Connect(function()
         drop(selectedItem)
     end
 end)
-
 
 runs.Heartbeat:Connect(function()
     if Options.droptogglemanual.Value then
