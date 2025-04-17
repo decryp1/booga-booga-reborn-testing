@@ -40,6 +40,10 @@ local marketservice = game:GetService("MarketplaceService")
 local rbxservice = game:GetService("RbxAnalyticsService")
 local placestructure
 local tspmo = game:GetService("TweenService")
+local tweening = nil
+local orbiton, range, orbitradius, orbitspeed, itemheight = false, 20, 10, 5, 3
+local attacheditems, itemangles, lastpositions = {}, {}, {}
+local itemsfolder = workspace:WaitForChild("Items")
 local itemslist = {
 "Adurite", "Berry", "Bloodfruit", "Bluefruit", "Coin", "Essence", "Hide", "Ice Cube", "Iron", "Jelly", "Leaves", "Log", "Steel", "Stone", "Wood", "Gold", "Raw Gold", "Crystal Chunk", "Raw Emerald", "Pink Diamond", "Raw Adurite", "Raw Iron", "Coal"}
 local Options = Library.Options
@@ -57,7 +61,7 @@ Tabs.Main:CreateButton({Title = "Copy SID", Callback = function() setclipboard(r
 --{COMBAT TAB}
 local killauratoggle = Tabs.Combat:CreateToggle("killauratoggle", { Title = "Kill Aura", Default = false })
 local killaurarangeslider = Tabs.Combat:CreateSlider("killaurarange", { Title = "Range", Min = 1, Max = 9, Rounding = 1, Default = 5 })
-local katargetcountdropdown = Tabs.Combat:CreateDropdown("katargetcountdropdown", { Title = "Max Targets", Values = { "1", "2", "3", "4", "5", "6" }, Default = "1" })
+local katargetsdropdown = Tabs.Combat:CreateDropdown("katargetsdropdown", { Title = "Max Targets", Values = { "1", "2", "3", "4", "5", "6" }, Default = "1" })
 local kaswingcooldownslider = Tabs.Combat:CreateSlider("kaswingcooldownslider", { Title = "Attack Cooldown (s)", Min = 0.01, Max = 1.01, Rounding = 2, Default = 0.1 })
 --{MAP TAB}
 local resourceauratoggle = Tabs.Map:CreateToggle("resourceauratoggle", { Title = "Resource Aura", Default = false })
@@ -162,9 +166,9 @@ end
 
 Options.msatoggle:OnChanged(updmsa)
 
-local function swingtool(entityid)
+local function swingtool(tspmogngicl)
     if packets.SwingTool and packets.SwingTool.send then
-        packets.SwingTool.send(entityid)
+        packets.SwingTool.send(tspmogngicl)
     end
 end
 
@@ -172,6 +176,16 @@ local function pickup(entityid)
     if packets.Pickup and packets.Pickup.send then
         packets.Pickup.send(entityid)
     end
+end
+
+local function getlayout(itemname)
+    local inventory = plr.PlayerGui.MainGui.RightPanel.Inventory.List
+    for _, child in ipairs(inventory:GetChildren()) do
+        if child:IsA("ImageLabel") and child.Name == itemname then
+            return child.LayoutOrder
+        end
+    end
+    return nil
 end
 
 local function drop(itemname)
@@ -201,7 +215,7 @@ task.spawn(function()
         end
 
         local range = tonumber(Options.killaurarange.Value) or 20
-        local targetcount = tonumber(Options.katargetcountdropdown.Value) or 1
+        local targets = tonumber(Options.katargetsdropdown.Value) or 1
         local cooldown = tonumber(Options.kaswingcooldownslider.Value) or 0.1
         local targets = {}
 
@@ -228,7 +242,7 @@ task.spawn(function()
             end)
 
             local selectedtargets = {}
-            for i = 1, math.min(targetcount, #targets) do
+            for i = 1, math.min(targets, #targets) do
                 table.insert(selectedtargets, targets[i].eid)
             end
 
@@ -247,7 +261,7 @@ task.spawn(function()
             end
 
             local range = tonumber(Options.resourceaurarange.Value) or 20
-            local targetcount = tonumber(Options.resourcetargetdropdown.Value) or 1
+            local targets = tonumber(Options.resourcetargetdropdown.Value) or 1
             local cooldown = tonumber(Options.resourcecooldownslider.Value) or 0.1
             local targets = {}
 
@@ -271,7 +285,7 @@ task.spawn(function()
                 end)
 
                 local selectedtargets = {}
-                for i = 1, math.min(targetcount, #targets) do
+                for i = 1, math.min(targets, #targets) do
                     table.insert(selectedtargets, targets[i].eid)
                 end
 
@@ -290,7 +304,7 @@ task.spawn(function()
         end
 
         local range = tonumber(Options.critterrangeslider.Value) or 20
-        local targetcount = tonumber(Options.crittertargetdropdown.Value) or 1
+        local targets = tonumber(Options.crittertargetdropdown.Value) or 1
         local cooldown = tonumber(Options.crittercooldownslider.Value) or 0.1
         local targets = {}
 
@@ -314,7 +328,7 @@ task.spawn(function()
             end)
 
             local selectedtargets = {}
-            for i = 1, math.min(targetcount, #targets) do
+            for i = 1, math.min(targets, #targets) do
                 table.insert(selectedtargets, targets[i].eid)
             end
 
@@ -369,16 +383,6 @@ task.spawn(function()
     end
 end)
 
-local function getlayout(itemname)
-    local inventory = plr.PlayerGui.MainGui.RightPanel.Inventory.List
-    for _, child in ipairs(inventory:GetChildren()) do
-        if child:IsA("ImageLabel") and child.Name == itemname then
-            return child.LayoutOrder
-        end
-    end
-    return nil
-end
-
 runs.Heartbeat:Connect(function()
     if Options.droptoggle.Value then
         local selectedItem = Options.dropdropdown.Value
@@ -394,7 +398,7 @@ runs.Heartbeat:Connect(function()
 end)
 
 local plantedboxes = {}
-local fruittoitemid = {
+local fruits = {
     Bloodfruit = 94,
     Bluefruit = 377,
     Lemon = 99,
@@ -458,7 +462,6 @@ local function getbushes(range, fruitname)
     return bushes
 end
 
-local tweening = nil
 local function tween(target)
     if tweening then tweening:Cancel() end
     local distance = (root.Position - target.Position).Magnitude
@@ -525,7 +528,7 @@ task.spawn(function()
         local range = tonumber(Options.plantrange.Value) or 30
         local delay = tonumber(Options.plantdelay.Value) or 0.1
         local selectedfruit = Options.fruitdropdown.Value
-        local itemID = fruittoitemid[selectedfruit] or 94
+        local itemID = fruits[selectedfruit] or 94
         local plantboxes = getpbs(range)
         table.sort(plantboxes, function(a, b) return a.dist < b.dist end)
 
@@ -606,10 +609,6 @@ placestructure = function(gridsize)
     end
 end
 
-local orbiton, range, orbitradius, orbitspeed, itemheight = false, 20, 10, 5, 3
-local attacheditems, itemangles, lastpositions = {}, {}, {}
-local itemsfolder = workspace:WaitForChild("Items")
-
 orbittoggle:OnChanged(function(value)
     orbiton = value
     if not orbiton then
@@ -639,11 +638,6 @@ orbittoggle:OnChanged(function(value)
         end)
     end
 end)
-
-orbitrangeslider:OnChanged(function(value) range = value end)
-orbitradiusslider:OnChanged(function(value) orbitradius = value end)
-orbitspeedslider:OnChanged(function(value) orbitspeed = value end)
-itemheightslider:OnChanged(function(value) itemheight = value end)
 
 runs.RenderStepped:Connect(function()
     if not orbiton then return end
@@ -678,6 +672,10 @@ task.spawn(function()
     end
 end)
 
+orbitrangeslider:OnChanged(function(value) range = value end)
+orbitradiusslider:OnChanged(function(value) orbitradius = value end)
+orbitspeedslider:OnChanged(function(value) orbitspeed = value end)
+itemheightslider:OnChanged(function(value) itemheight = value end)
 SaveManager:SetLibrary(Library)
 InterfaceManager:SetLibrary(Library)
 SaveManager:IgnoreThemeSettings()
