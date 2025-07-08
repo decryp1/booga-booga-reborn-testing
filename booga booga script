@@ -45,7 +45,7 @@ local itemslist = {
 local Options = Library.Options
 --{MAIN TAB}
 local wstoggle = Tabs.Main:CreateToggle("wstoggle", { Title = "Walkspeed", Default = false })
-local wsslider = Tabs.Main:CreateSlider("wsslider", { Title = "Value", Min = 1, Max = 23, Rounding = 1, Default = 16 })
+local wsslider = Tabs.Main:CreateSlider("wsslider", { Title = "Value", Min = 1, Max = 35, Rounding = 1, Default = 16 })
 local jptoggle = Tabs.Main:CreateToggle("jptoggle", { Title = "JumpPower", Default = false })
 local jpslider = Tabs.Main:CreateSlider("jpslider", { Title = "Value", Min = 1, Max = 65, Rounding = 1, Default = 50 })
 local hheighttoggle = Tabs.Main:CreateToggle("hheighttoggle", { Title = "HipHeight", Default = false })
@@ -162,6 +162,19 @@ end
 
 Options.msatoggle:OnChanged(updmsa)
 
+local function getlayout(itemname)
+    local inventory = game:GetService("Players").LocalPlayer.PlayerGui.MainGui.RightPanel.Inventory:FindFirstChild("List")
+    if not inventory then
+        return nil
+    end
+    for _, child in ipairs(inventory:GetChildren()) do
+        if child:IsA("ImageLabel") and child.Name == itemname then
+            return child.LayoutOrder
+        end
+    end
+    return nil
+end
+
 local function swingtool(tspmogngicl)
     if packets.SwingTool and packets.SwingTool.send then
         packets.SwingTool.send(tspmogngicl)
@@ -175,10 +188,14 @@ local function pickup(entityid)
 end
 
 local function drop(itemname)
-    local layout = getlayout(itemname)
-    if layout then
-        if packets.DropBagItem and packets.DropBagItem.send then
-            packets.DropBagItem.send(layout)
+    local inventory = game:GetService("Players").LocalPlayer.PlayerGui.MainGui.RightPanel.Inventory:FindFirstChild("List")
+    if not inventory then return end
+
+    for _, child in ipairs(inventory:GetChildren()) do
+        if child:IsA("ImageLabel") and child.Name == itemname then
+            if packets and packets.DropBagItem and packets.DropBagItem.send then
+                packets.DropBagItem.send(child.LayoutOrder)
+            end
         end
     end
 end
@@ -240,47 +257,56 @@ task.spawn(function()
 end)
 
 task.spawn(function()
-        while true do
-            if not Options.resourceauratoggle.Value then
-                task.wait(0.1)
-                continue
+    while true do
+        if not Options.resourceauratoggle.Value then
+            task.wait(0.1)
+            continue
+        end
+
+        local range = tonumber(Options.resourceaurarange.Value) or 20
+        local targetCount = tonumber(Options.resourcetargetdropdown.Value) or 1
+        local cooldown = tonumber(Options.resourcecooldownslider.Value) or 0.1
+        local targets = {}
+        local allresources = {}
+
+        for _, r in pairs(workspace.Resources:GetChildren()) do
+            table.insert(allresources, r)
+        end
+        for _, r in pairs(workspace:GetChildren()) do
+            if r:IsA("Model") and r.Name == "Gold Node" then
+                table.insert(allresources, r)
             end
+        end
 
-            local range = tonumber(Options.resourceaurarange.Value) or 20
-            local targetCount = tonumber(Options.resourcetargetdropdown.Value) or 1
-            local cooldown = tonumber(Options.resourcecooldownslider.Value) or 0.1
-            local targets = {}
-
-            for _, res in pairs(workspace.Resources:GetChildren()) do
-                if res:IsA("Model") and res:GetAttribute("EntityID") then
-                    local eid = res:GetAttribute("EntityID")
-                    local ppart = res.PrimaryPart or res:FindFirstChildWhichIsA("BasePart")
-
-                    if ppart then
-                        local dist = (ppart.Position - root.Position).Magnitude
-                        if dist <= range then
-                            table.insert(targets, { eid = eid, dist = dist })
-                        end
+        for _, res in pairs(allresources) do
+            if res:IsA("Model") and res:GetAttribute("EntityID") then
+                local eid = res:GetAttribute("EntityID")
+                local ppart = res.PrimaryPart or res:FindFirstChildWhichIsA("BasePart")
+                if ppart then
+                    local dist = (ppart.Position - root.Position).Magnitude
+                    if dist <= range then
+                        table.insert(targets, { eid = eid, dist = dist })
                     end
                 end
             end
+        end
 
-            if #targets > 0 then
-                table.sort(targets, function(a, b)
-                    return a.dist < b.dist
-                end)
+        if #targets > 0 then
+            table.sort(targets, function(a, b)
+                return a.dist < b.dist
+            end)
 
-                local selectedTargets = {}
-                for i = 1, math.min(targetCount, #targets) do
-                    table.insert(selectedTargets, targets[i].eid)
-                end
-
-                swingtool(selectedTargets)
+            local selectedTargets = {}
+            for i = 1, math.min(targetCount, #targets) do
+                table.insert(selectedTargets, targets[i].eid)
             end
 
-            task.wait(cooldown)
+            swingtool(selectedTargets)
         end
-    end)
+
+        task.wait(cooldown)
+    end
+end)
 
 task.spawn(function()
     while true do
@@ -371,28 +397,25 @@ task.spawn(function()
     end
 end)
 
-local function getlayout(itemname)
-    local inventory = plr.PlayerGui.MainGui.RightPanel.Inventory.List
-    for _, child in ipairs(inventory:GetChildren()) do
-        if child:IsA("ImageLabel") and child.Name == itemname then
-            return child.LayoutOrder
-        end
-    end
-    return nil
-end
-
+local debounce = 0
+local cd = 0 -- i genuinely dont know why it breaks now, but turn this up to 0.3 - 0.2 to stop it from dropping other items
 runs.Heartbeat:Connect(function()
     if Options.droptoggle.Value then
-        local selectedItem = Options.dropdropdown.Value
-        drop(selectedItem)
+        if tick() - debounce >= cd then
+            local selectedItem = Options.dropdropdown.Value
+            drop(selectedItem)
+            debounce = tick()
+        end
     end
 end)
 
-
 runs.Heartbeat:Connect(function()
     if Options.droptogglemanual.Value then
-        local itemname = Options.droptextbox.Value
-        drop(itemname)
+        if tick() - debounce >= cd then
+            local itemname = Options.droptextbox.Value
+            drop(itemname)
+            debounce = tick()
+        end
     end
 end)
 
@@ -693,7 +716,7 @@ Window:SelectTab(1)
 Library:Notify{
     Title = "Herkle Hub",
     Content = "Loaded, Enjoy!",
-    Duration = 10
+    Duration = 8
 }
 SaveManager:LoadAutoloadConfig()
 print("Done! Enjoy Herkle Hub!")
