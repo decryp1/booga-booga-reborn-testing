@@ -62,11 +62,11 @@ local kaswingcooldownslider = Tabs.Combat:CreateSlider("kaswingcooldownslider", 
 --{MAP TAB}
 local resourceauratoggle = Tabs.Map:CreateToggle("resourceauratoggle", { Title = "Resource Aura", Default = false })
 local resourceaurarange = Tabs.Map:CreateSlider("resourceaurarange", { Title = "Range", Min = 1, Max = 20, Rounding = 1, Default = 20 })
-local resourcetargetdropdown = Tabs.Map:CreateDropdown("resourcetargetdropdown", { Title = "Max Targets", Values = { "1", "2", "3", "4", "5", "6" }, Default = "1" })
+local resourcetargetdropdown = Tabs.Map:CreateDropdown("resourcetargetdropdown", { Title = "Max Targets", Values = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20" }, Default = "1" })
 local resourcecooldownslider = Tabs.Map:CreateSlider("resourcecooldownslider", { Title = "Swing Cooldown (s)", Min = 0.01, Max = 1.01, Rounding = 2, Default = 0.1 })
 local critterauratoggle = Tabs.Map:CreateToggle("critterauratoggle", { Title = "Critter Aura", Default = false })
 local critterrangeslider = Tabs.Map:CreateSlider("critterrangeslider", { Title = "Range", Min = 1, Max = 20, Rounding = 1, Default = 20 })
-local crittertargetdropdown = Tabs.Map:CreateDropdown("crittertargetdropdown", { Title = "Max Targets", Values = { "1", "2", "3", "4", "5", "6" }, Default = "1" })
+local crittertargetdropdown = Tabs.Map:CreateDropdown("crittertargetdropdown", { Title = "Max Targets", Values = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20" }, Default = "1" })
 local crittercooldownslider = Tabs.Map:CreateSlider("crittercooldownslider", { Title = "Swing Cooldown (s)", Min = 0.01, Max = 1.01, Rounding = 2, Default = 0.1 })
 --{PICKUP TAB}
 local autopickuptoggle = Tabs.Pickup:CreateToggle("autopickuptoggle", { Title = "Auto Pickup", Default = false })
@@ -162,6 +162,42 @@ end
 
 Options.msatoggle:OnChanged(updmsa)
 
+local function decode(str)
+    local b1, b2, b3 = string.byte(str, -4, -2)
+    return b1 + b2 * 256 + b3 * 65536
+end
+
+local function swingencode(ids)
+    if typeof(ids) ~= "table" then ids = {ids}; end
+    local count = #ids
+    local out = {string.char(0x00, 0x11, count, 0x00)}
+    for i = 1, count do
+        local num = ids[i]
+        out[#out + 1] = string.char(num % 256, math.floor(num / 256) % 256, math.floor(num / 65536) % 256, 0x00)
+    end
+    return table.concat(out)
+end
+
+local function pickupencode(entityid)
+    local b1 = entityid % 256
+    local b2 = math.floor(entityid / 256) % 256
+    local b3 = math.floor(entityid / 65536) % 256
+    return string.char(0x00, 0xD5, b1, b2, b3, 0x00)
+end
+
+local function run(stringg, packett)
+    local id = typeof(stringg) == "string" and decode(stringg) or stringg
+    local packet
+    if packett == "swing" then
+        packet = swingencode(id)
+    elseif packett == "pickup" then
+        packet = pickupencode(id)
+    else
+        print("dumbass")
+    end
+    game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable"):FireServer(buffer.fromstring(packet))
+end
+
 local function getlayout(itemname)
     local inventory = game:GetService("Players").LocalPlayer.PlayerGui.MainGui.RightPanel.Inventory:FindFirstChild("List")
     if not inventory then
@@ -249,7 +285,7 @@ task.spawn(function()
                 table.insert(selectedTargets, targets[i].eid)
             end
 
-            swingtool(selectedTargets)
+            run(selectedTargets, "swing")
         end
 
         task.wait(cooldown)
@@ -301,7 +337,7 @@ task.spawn(function()
                 table.insert(selectedTargets, targets[i].eid)
             end
 
-            swingtool(selectedTargets)
+            run(selectedTargets, "swing")
         end
 
         task.wait(cooldown)
@@ -344,7 +380,7 @@ task.spawn(function()
                 table.insert(selectedTargets, targets[i].eid)
             end
 
-            swingtool(selectedTargets)
+            run(selectedTargets, "swing")
         end
 
         task.wait(cooldown)
@@ -366,7 +402,7 @@ task.spawn(function()
                     if entityid and table.find(selecteditems, selecteditem) then
                         local dist = (item.Position - root.Position).Magnitude
                         if dist <= range then
-                            pickup(entityid)
+                            run(entityid, "pickup")
                         end
                     end
                 end
@@ -384,7 +420,7 @@ task.spawn(function()
                             if entityid and table.find(selecteditems, selecteditem) then
                                 local dist = (chest.PrimaryPart.Position - root.Position).Magnitude
                                 if dist <= range then
-                                    pickup(entityid)
+                                    run(entityid, "pickup")
                                 end
                             end
                         end
