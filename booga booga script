@@ -185,13 +185,33 @@ local function pickupencode(entityid)
     return string.char(0x00, 0xD5, b1, b2, b3, 0x00)
 end
 
-local function run(stringg, packett)
+local function toggledoorencode(entityid)
+    local b1 = entityid % 256
+    local b2 = math.floor(entityid / 256) % 256
+    local b3 = math.floor(entityid / 65536) % 256
+    return string.char(0x00, 0x07, b1, b2, b3, 0x00)
+end
+
+local function interactstructureencode(entityid, itemid)
+    local b1 = entityid % 256
+    local b2 = math.floor(entityid / 256) % 256
+    local b3 = math.floor(entityid / 65536) % 256
+    local i1 = itemid % 256
+    local i2 = math.floor(itemid / 256) % 256
+    return string.char(0x00, 0xC9, b1, b2, b3, 0x00, i1, i2)
+end
+
+local function run(stringg, packett, itemid)
     local id = typeof(stringg) == "string" and decode(stringg) or stringg
     local packet
     if packett == "swing" then
         packet = swingencode(id)
     elseif packett == "pickup" then
         packet = pickupencode(id)
+    elseif packett == "interactstructure" then
+        packet = interactstructureencode(id, typeof(itemid) == "number" and itemid or nil)
+    elseif packett == "toggledoor" then
+        packet = toggledoorencode(id)
     else
         print("dumbass")
     end
@@ -593,7 +613,8 @@ task.spawn(function()
 
         for _, box in ipairs(plantboxes) do
             if not box.deployable:FindFirstChild("Seed") then
-                plant(box.entityid, itemID)
+                run(box.entityid, "interactstructure", itemID)
+                --plant(box.entityid, itemID)
             else
                 plantedboxes[box.entityid] = true
             end
@@ -613,7 +634,8 @@ task.spawn(function()
         local bushes = getbushes(harvestrange, selectedfruit)
         table.sort(bushes, function(a, b) return a.dist < b.dist end)
         for _, bush in ipairs(bushes) do
-            pickup(bush.entityid)
+            --pickup(bush.entityid)
+            run(bush.entityid, "pickup")
         end
         task.wait(0.1)
     end
