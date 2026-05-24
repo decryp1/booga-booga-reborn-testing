@@ -88,6 +88,7 @@ Tabs.Farming:CreateParagraph("Aligned Paragraph", {Title = "Tween Stuff", Conten
 local tweenplantboxtoggle = Tabs.Farming:AddToggle("tweentoplantbox", { Title = "Tween to Plant Box", Default = false })
 local tweenbushtoggle = Tabs.Farming:AddToggle("tweentobush", { Title = "Tween to Bush + Plant Box", Default = false })
 local tweenrangeslider = Tabs.Farming:AddSlider("tweenrange", { Title = "Range", Min = 1, Max = 250, Rounding = 1, Default = 250 })
+local tweenspeedslider = Tabs.Farming:AddSlider("tweenspeed", {Title = "Tween Speed", Min = 1, Max = 21, Rounding = 1, Default = 19})
 Tabs.Farming:CreateParagraph("Aligned Paragraph", {Title = "Plantbox Stuff", Content = "wish this ui was more like linoria :(", TitleAlignment = "Middle", ContentAlignment = Enum.TextXAlignment.Center})
 Tabs.Farming:CreateButton({Title = "Place 16x16 Plantboxes (256)", Callback = function() placestructure(16) end })
 Tabs.Farming:CreateButton({Title = "Place 15x15 Plantboxes (225)", Callback = function() placestructure(15) end })
@@ -552,7 +553,7 @@ local tweening = nil
 local function tween(target)
     if tweening then tweening:Cancel() end
     local distance = (root.Position - target.Position).Magnitude
-    local duration = distance / 21
+    local duration = distance / tonumber(tweenspeedslider.Value)
     local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
     local tween = tspmo:Create(root, tweenInfo, { CFrame = target })
     tween:Play()
