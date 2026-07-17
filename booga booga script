@@ -431,7 +431,8 @@ task.spawn(function()
                     if entityid and table.find(selecteditems, selecteditem) then
                         local dist = (item.Position - root.Position).Magnitude
                         if dist <= range then
-                            run(entityid, "pickup")
+                            --run(entityid, "pickup")
+							pickup(entityid)
                         end
                     end
                 end
@@ -449,7 +450,8 @@ task.spawn(function()
                             if entityid and table.find(selecteditems, selecteditem) then
                                 local dist = (chest.PrimaryPart.Position - root.Position).Magnitude
                                 if dist <= range then
-                                    run(entityid, "pickup")
+                                    --run(entityid, "pickup")
+									pickup(entityid)
                                 end
                             end
                         end
@@ -686,7 +688,11 @@ placestructure = function(gridsize)
         for z = 0, gridsize - 1 do
             task.wait(0.3)
             local position = startpos + Vector3.new(x * spacing, 0, z * spacing)
-			run("Plant Box", "placestructure", CFrame.new(position))
+			--run("Plant Box", "placestructure", CFrame.new(position))
+			packets.PlaceStructure.send({
+				["buildingName"] = "Plant Box",
+				["cframe"] = CFrame.new(position)
+			})
         end
     end
 end
