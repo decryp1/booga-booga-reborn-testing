@@ -622,8 +622,8 @@ task.spawn(function()
 
         for _, box in ipairs(plantboxes) do
             if not box.deployable:FindFirstChild("Seed") then
-                run(box.entityid, "interactstructure", itemID)
-                --plant(box.entityid, itemID)
+                --run(box.entityid, "interactstructure", itemID)
+                plant(box.entityid, itemID)
             else
                 plantedboxes[box.entityid] = true
             end
@@ -643,8 +643,8 @@ task.spawn(function()
         local bushes = getbushes(harvestrange, selectedfruit)
         table.sort(bushes, function(a, b) return a.dist < b.dist end)
         for _, bush in ipairs(bushes) do
-            --pickup(bush.entityid)
-            run(bush.entityid, "pickup")
+            pickup(bush.entityid)
+            --run(bush.entityid, "pickup")
         end
         task.wait(0.1)
     end
